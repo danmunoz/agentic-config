@@ -1,0 +1,8 @@
+{
+  "name": "agentic-config",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "smol-toml": "^1.4.2"
+  }
+}

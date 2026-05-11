@@ -1,0 +1,12 @@
+#!/usr/bin/env node
+
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { runCli } from './agh-lib/cli.mjs';
+
+const entryPath = fileURLToPath(import.meta.url);
+const scriptsDir = path.dirname(entryPath);
+const repoRoot = path.resolve(scriptsDir, '..');
+
+const exitCode = await runCli(process.argv.slice(2), { repoRoot });
+process.exitCode = exitCode;
