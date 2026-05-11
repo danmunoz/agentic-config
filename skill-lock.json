@@ -1,0 +1,118 @@
+{
+  "version": 3,
+  "scopes": {
+    "global": {},
+    "local": {
+      "ios": {
+        "ios-accessibility": {
+          "skillName": "ios-accessibility",
+          "scope": "local",
+          "platform": "ios",
+          "sourcePath": "ios-accessibility",
+          "originalUrl": "https://github.com/dadederk/iOS-Accessibility-Agent-Skill",
+          "normalizedUrl": "https://github.com/dadederk/iOS-Accessibility-Agent-Skill",
+          "requestedVersion": null,
+          "mode": "head",
+          "resolvedCommit": "dcc3a36ce1d0099341d545c1af4eb5a8c989bf66",
+          "description": "Expert guidance on iOS accessibility best practices, patterns, and implementation. Use when developers mention: (1) iOS accessibility, VoiceOver, Dynamic Type, or assistive technologies, (2) accessibility labels, traits, hints, or values, (3) automated accessibility testing, auditing, or manual testing, (4) Switch Control, Voice Control, or Full Keyboard Access, (5) inclusive design or accessibility culture, (6) making apps work for users with disabilities.",
+          "updatedAt": "2026-05-11T12:40:44.180Z"
+        },
+        "swift-concurrency": {
+          "skillName": "swift-concurrency",
+          "scope": "local",
+          "platform": "ios",
+          "sourcePath": "swift-concurrency",
+          "originalUrl": "https://github.com/AvdLee/Swift-Concurrency-Agent-Skill",
+          "normalizedUrl": "https://github.com/AvdLee/Swift-Concurrency-Agent-Skill",
+          "requestedVersion": "2.1.1",
+          "mode": "version",
+          "resolvedCommit": "faa595ee186dbd23a390dc1e7b06df40948941ab",
+          "description": "Diagnose Swift Concurrency issues, refactor callback-based code to async/await, and guide Swift 6 migration when working with tasks, actors, @MainActor, Sendable, data races, thread safety, or concurrency-related compiler and linter warnings.",
+          "updatedAt": "2026-05-11T12:40:41.037Z"
+        },
+        "swift-testing-expert": {
+          "skillName": "swift-testing-expert",
+          "scope": "local",
+          "platform": "ios",
+          "sourcePath": "swift-testing-expert",
+          "originalUrl": "https://github.com/AvdLee/Swift-Testing-Agent-Skill",
+          "normalizedUrl": "https://github.com/AvdLee/Swift-Testing-Agent-Skill",
+          "requestedVersion": "1.2.0",
+          "mode": "version",
+          "resolvedCommit": "798e9b1a2bcac164d4f0c781908199e754f0bab6",
+          "description": "Expert guidance for Swift Testing: test structure, #expect/#require macros, traits and tags, parameterized tests, test plans, parallel execution, async waiting patterns, and XCTest migration. Use when writing new Swift tests, modernizing XCTest suites, debugging flaky tests, or improving test quality and maintainability in Apple-platform or Swift server projects.",
+          "updatedAt": "2026-05-11T12:40:41.675Z"
+        },
+        "swiftdata-pro": {
+          "skillName": "swiftdata-pro",
+          "scope": "local",
+          "platform": "ios",
+          "sourcePath": "swiftdata-pro",
+          "originalUrl": "https://github.com/twostraws/SwiftData-Agent-Skill",
+          "normalizedUrl": "https://github.com/twostraws/SwiftData-Agent-Skill",
+          "requestedVersion": "1.0.0",
+          "mode": "version",
+          "resolvedCommit": "be7db1864a3a27f0fc1fa7a21d55536370f37818",
+          "description": "Writes, reviews, and improves SwiftData code using modern APIs and best practices. Use when reading, writing, or reviewing projects that use SwiftData.",
+          "updatedAt": "2026-05-11T12:40:43.091Z"
+        },
+        "swiftui-expert-skill": {
+          "skillName": "swiftui-expert-skill",
+          "scope": "local",
+          "platform": "ios",
+          "sourcePath": "swiftui-expert-skill",
+          "originalUrl": "https://github.com/AvdLee/SwiftUI-Agent-Skill",
+          "normalizedUrl": "https://github.com/AvdLee/SwiftUI-Agent-Skill",
+          "requestedVersion": "3.1.0",
+          "mode": "version",
+          "resolvedCommit": "0066966574a22d30e6b89242be265b39fd19a0f4",
+          "description": "Write, review, or improve SwiftUI code following best practices for state management, view composition, performance, macOS-specific APIs, and iOS 26+ Liquid Glass adoption. Use when building new SwiftUI features, refactoring existing views, reviewing code quality, or adopting modern SwiftUI patterns. Also triggers whenever an Xcode Instruments `.trace` file is referenced (to analyse it) or the user asks to **record** a new trace — attach to a running app, launch one fresh, or capture a manually-stopped session with the bundled `record_trace.py`. A target SwiftUI source file is optional; if provided it grounds recommendations in specific lines, but a trace alone is enough to diagnose hangs, hitches, CPU hotspots, and high-severity SwiftUI updates.",
+          "updatedAt": "2026-05-11T12:40:42.420Z"
+        }
+      },
+      "android": {
+        "android-cli": {
+          "skillName": "android-cli",
+          "scope": "local",
+          "platform": "android",
+          "sourcePath": "devtools/android-cli",
+          "originalUrl": "https://github.com/android/skills",
+          "normalizedUrl": "https://github.com/android/skills",
+          "requestedVersion": "v0.0.5",
+          "mode": "version",
+          "resolvedCommit": "3463433cfdd061155428852f2dcca9d0108bdeae",
+          "description": "Orchestrates Android development tasks including project creation, deployment, SDK management, and environment diagnostics using the `android` command-line tool.",
+          "updatedAt": "2026-05-11T12:40:45.830Z"
+        },
+        "navigation-3": {
+          "skillName": "navigation-3",
+          "scope": "local",
+          "platform": "android",
+          "sourcePath": "navigation/navigation-3",
+          "originalUrl": "https://github.com/android/skills",
+          "normalizedUrl": "https://github.com/android/skills",
+          "requestedVersion": "v0.0.5",
+          "mode": "version",
+          "resolvedCommit": "3463433cfdd061155428852f2dcca9d0108bdeae",
+          "description": "Learn how to install and migrate to Jetpack Navigation 3, and how to",
+          "updatedAt": "2026-05-11T12:40:44.970Z"
+        }
+      },
+      "web": {
+        "playwright-cli": {
+          "skillName": "playwright-cli",
+          "scope": "local",
+          "platform": "web",
+          "sourcePath": "skills/playwright-cli",
+          "originalUrl": "https://github.com/microsoft/playwright-cli",
+          "normalizedUrl": "https://github.com/microsoft/playwright-cli",
+          "requestedVersion": "v0.1.12",
+          "mode": "version",
+          "resolvedCommit": "695107b8cd9369151838bf31168b9339afe47f2f",
+          "description": "Automate browser interactions, test web pages and work with Playwright tests.",
+          "updatedAt": "2026-05-11T14:54:44.969Z"
+        }
+      }
+    }
+  }
+}

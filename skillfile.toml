@@ -1,0 +1,57 @@
+[[skills]]
+url = "https://github.com/AvdLee/Swift-Concurrency-Agent-Skill"
+name = "swift-concurrency"
+version = "2.1.1"
+scope = "local"
+platform = "ios"
+
+[[skills]]
+url = "https://github.com/AvdLee/Swift-Testing-Agent-Skill"
+name = "swift-testing-expert"
+version = "1.2.0"
+scope = "local"
+platform = "ios"
+
+[[skills]]
+url = "https://github.com/AvdLee/SwiftUI-Agent-Skill"
+name = "swiftui-expert-skill"
+version = "3.1.0"
+scope = "local"
+platform = "ios"
+
+[[skills]]
+url = "https://github.com/twostraws/SwiftData-Agent-Skill"
+name = "swiftdata-pro"
+version = "1.0.0"
+scope = "local"
+platform = "ios"
+
+[[skills]]
+url = "https://github.com/dadederk/iOS-Accessibility-Agent-Skill"
+name = "ios-accessibility"
+scope = "local"
+platform = "ios"
+
+[[skills]]
+url = "https://github.com/android/skills"
+name = "navigation-3"
+version = "v0.0.5"
+scope = "local"
+platform = "android"
+source_path = "navigation/navigation-3"
+
+[[skills]]
+url = "https://github.com/android/skills"
+name = "android-cli"
+version = "v0.0.5"
+scope = "local"
+platform = "android"
+source_path = "devtools/android-cli"
+
+[[skills]]
+url = "https://github.com/microsoft/playwright-cli"
+name = "playwright-cli"
+version = "v0.1.12"
+scope = "local"
+platform = "web"
+source_path = "skills/playwright-cli"
