@@ -24,9 +24,12 @@ If you only need project skills, skip straight to [Project Setup](#project-setup
 
 - Node.js and `npm`
 - `zsh`
+- `uv` for Python-backed scripts such as `nanobanana`, or Homebrew so `agh install` can install `uv` with approval
 - this repo cloned locally
 
-`agh install` manages a `PATH` block in `~/.zshrc` and `~/.zprofile`.
+`agh install` can manage a `PATH` block in `~/.zshrc` and `~/.zprofile`, checks whether `uv` is available for scripts that declare their own Python dependencies, checks that repo-local `.env` exists, and can install `uv` through Homebrew after confirmation.
+
+For scripts that need local secrets, copy `.env.example` to `.env` and fill in local values. `.env` is ignored by git.
 
 ## What This Repo Manages
 
@@ -39,6 +42,7 @@ skills/ios/               Local iOS skills
 skills/android/           Local Android skills
 skills/web/               Local web skills
 scripts/agh               Agentic Config Helper CLI
+.env.example              Local secret template; copy to ignored .env
 docs/agh.md               Detailed CLI reference
 docs/skill-catalog.md     Manifest format and validation rules
 ```
@@ -68,6 +72,11 @@ This does two things:
 - adds this repo's `scripts/` directory to `PATH`
 - replaces selected tool instruction files with symlinks to this repo's `AGENTS.MD`
 
+At the beginning of `agh install`, choose which setup components to apply:
+
+- scripts PATH
+- agent instruction files
+
 Supported tool targets:
 
 - Codex: `~/.codex/AGENTS.md`
@@ -75,6 +84,15 @@ Supported tool targets:
 - OpenCode: `~/.config/opencode/AGENTS.md`
 
 After `install`, open a new shell so `agh` is on `PATH`.
+
+Optional: configure local script secrets:
+
+```bash
+cp .env.example .env
+$EDITOR .env
+```
+
+`nanobanana` reads `GEMINI_API_KEY` from the shell environment first, then from this repo's ignored `.env` file.
 
 Optional: apply global shared skills:
 

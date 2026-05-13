@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { parseArgs, runCli } from '../cli.mjs';
+import { checkScriptConfiguration } from '../runtimes.mjs';
 import { createUiDouble, makeRepoFixture, makeTempDir, writeFile } from './helpers.mjs';
 
 test('parseArgs shows help when no command is provided', () => {
@@ -13,6 +14,12 @@ test('parseArgs shows help when no command is provided', () => {
 test('parseArgs accepts tool filters for install and set-config', () => {
   const parsed = parseArgs(['set-config', '--tools', 'codex,opencode']);
   assert.deepEqual(parsed.selectedTools, ['codex', 'opencode']);
+});
+
+test('parseArgs accepts setup filters for install', () => {
+  const parsed = parseArgs(['install', '--setup', 'path,config', '--tools', 'codex']);
+  assert.deepEqual(parsed.selectedInstallComponents, ['path', 'config']);
+  assert.deepEqual(parsed.selectedTools, ['codex']);
 });
 
 test('parseArgs accepts --platforms and legacy --types for set-skills', () => {
@@ -54,12 +61,45 @@ test('runCli install updates both zsh startup files and selected config links', 
   const repoRoot = await makeRepoFixture();
   const homeDir = await makeTempDir();
   const double = createUiDouble();
+  double.answers.multiselect.push(['path', 'config']);
   double.answers.multiselect.push(['codex', 'opencode']);
 
-  const exitCode = await runCli(['install'], { repoRoot, homeDir, ui: double.ui });
+  const exitCode = await runCli(['install'], {
+    repoRoot,
+    homeDir,
+    ui: double.ui,
+    deps: {
+      async checkScriptRuntimes() {
+        return [
+          {
+            name: 'uv',
+            found: true,
+            path: '/usr/local/bin/uv',
+            purpose: 'Runs Python-backed scripts with declared dependencies, including nanobanana.',
+            installHint: 'Install uv.',
+          },
+        ];
+      },
+      async checkScriptConfiguration() {
+        return [
+          {
+            name: '.env',
+            found: true,
+            path: path.join(repoRoot, '.env'),
+            purpose: 'Provides local environment values for PATH-exposed scripts.',
+            setupHint: 'Copy .env.example to .env and fill in local values.',
+          },
+        ];
+      },
+    },
+  });
 
   assert.equal(exitCode, 0);
   assert.equal(double.errors.length, 0);
+  assert.ok(double.infos.includes('Install summary:'));
+  assert.ok(
+    double.infos.includes('Setup: scripts PATH, agent instruction files\nTools: codex, opencode')
+  );
   assert.match(await fs.readFile(path.join(homeDir, '.zshrc'), 'utf8'), /agh install/);
   assert.match(await fs.readFile(path.join(homeDir, '.zprofile'), 'utf8'), /agh install/);
   assert.equal(
@@ -70,6 +110,191 @@ test('runCli install updates both zsh startup files and selected config links', 
     path.join(repoRoot, 'AGENTS.MD')
   );
   await assert.rejects(fs.access(path.join(homeDir, '.claude', 'CLAUDE.md')));
+  assert.ok(double.infos.includes('Script runtimes:'));
+  assert.ok(double.infos.includes('- uv: found at /usr/local/bin/uv'));
+  assert.ok(double.infos.includes('Script configuration:'));
+  assert.ok(double.infos.includes(`- .env: found at ${path.join(repoRoot, '.env')}`));
+});
+
+test('runCli install can update only PATH and report missing script runtimes', async () => {
+  const repoRoot = await makeRepoFixture();
+  const homeDir = await makeTempDir();
+  const double = createUiDouble();
+  double.answers.multiselect.push(['path']);
+
+  const exitCode = await runCli(['install'], {
+    repoRoot,
+    homeDir,
+    ui: double.ui,
+    deps: {
+      async checkScriptRuntimes() {
+        return [
+          {
+            name: 'uv',
+            found: false,
+            path: null,
+            purpose: 'Runs Python-backed scripts with declared dependencies, including nanobanana.',
+            installHint: 'Install uv.',
+          },
+        ];
+      },
+      async checkScriptConfiguration() {
+        return [];
+      },
+    },
+  });
+
+  assert.equal(exitCode, 0);
+  assert.equal(double.errors.length, 0);
+  assert.match(await fs.readFile(path.join(homeDir, '.zshrc'), 'utf8'), /agh install/);
+  assert.match(await fs.readFile(path.join(homeDir, '.zprofile'), 'utf8'), /agh install/);
+  await assert.rejects(fs.access(path.join(homeDir, '.codex', 'AGENTS.md')));
+  assert.ok(double.infos.includes('Setup: scripts PATH'));
+  assert.deepEqual(double.warnings, [
+    'uv: missing. Runs Python-backed scripts with declared dependencies, including nanobanana. Install uv.',
+  ]);
+});
+
+test('runCli install reports missing script configuration for nanobanana', async () => {
+  const repoRoot = await makeRepoFixture();
+  const homeDir = await makeTempDir();
+  const double = createUiDouble();
+  double.answers.multiselect.push(['path']);
+
+  const exitCode = await runCli(['install'], {
+    repoRoot,
+    homeDir,
+    ui: double.ui,
+    deps: {
+      async checkScriptRuntimes() {
+        return [
+          {
+            name: 'uv',
+            found: true,
+            path: '/usr/local/bin/uv',
+            purpose: 'Runs Python-backed scripts with declared dependencies, including nanobanana.',
+            installHint: 'Install uv.',
+          },
+        ];
+      },
+      async checkScriptConfiguration() {
+        return [
+          {
+            name: '.env',
+            found: false,
+            path: path.join(repoRoot, '.env'),
+            purpose: 'Provides local environment values for PATH-exposed scripts.',
+            setupHint: 'Copy .env.example to .env and fill in local values.',
+          },
+        ];
+      },
+    },
+  });
+
+  assert.equal(exitCode, 0);
+  assert.ok(double.infos.includes('Script configuration:'));
+  assert.deepEqual(double.warnings, [
+    '.env: missing. Provides local environment values for PATH-exposed scripts. Copy .env.example to .env and fill in local values.',
+  ]);
+});
+
+test('checkScriptConfiguration detects repo .env', async () => {
+  const repoRoot = await makeRepoFixture();
+  await writeFile(path.join(repoRoot, '.env'), 'GEMINI_API_KEY="test-key"\n');
+
+  const results = await checkScriptConfiguration({ repoRoot });
+
+  assert.deepEqual(results, [
+    {
+      name: '.env',
+      found: true,
+      path: path.join(repoRoot, '.env'),
+      purpose: 'Provides local environment values for PATH-exposed scripts.',
+      setupHint: 'Copy .env.example to .env and fill in local values.',
+    },
+  ]);
+});
+
+test('runCli install can install missing uv with Homebrew after approval', async () => {
+  const repoRoot = await makeRepoFixture();
+  const homeDir = await makeTempDir();
+  const double = createUiDouble();
+  double.answers.multiselect.push(['path']);
+  double.answers.confirm.push(true);
+  let runtimeCheckCount = 0;
+  let installCount = 0;
+
+  const exitCode = await runCli(['install'], {
+    repoRoot,
+    homeDir,
+    ui: double.ui,
+    deps: {
+      async checkScriptRuntimes() {
+        runtimeCheckCount += 1;
+        return [
+          {
+            name: 'uv',
+            found: runtimeCheckCount > 1,
+            path: runtimeCheckCount > 1 ? '/opt/homebrew/bin/uv' : null,
+            purpose: 'Runs Python-backed scripts with declared dependencies, including nanobanana.',
+            installHint: 'Install uv.',
+          },
+        ];
+      },
+      async installUvWithHomebrew() {
+        installCount += 1;
+        return { installed: true };
+      },
+      async checkScriptConfiguration() {
+        return [];
+      },
+    },
+  });
+
+  assert.equal(exitCode, 0);
+  assert.equal(installCount, 1);
+  assert.equal(runtimeCheckCount, 2);
+  assert.deepEqual(double.working, [
+    'start:Installing uv with Homebrew...',
+    'stop',
+  ]);
+  assert.ok(double.infos.includes('Installed uv with Homebrew.'));
+  assert.ok(double.infos.includes('- uv: found at /opt/homebrew/bin/uv'));
+  assert.deepEqual(double.warnings, []);
+});
+
+test('runCli install can configure only instruction links', async () => {
+  const repoRoot = await makeRepoFixture();
+  const homeDir = await makeTempDir();
+  const double = createUiDouble();
+  double.answers.multiselect.push(['config']);
+  double.answers.multiselect.push(['claude']);
+
+  const exitCode = await runCli(['install'], {
+    repoRoot,
+    homeDir,
+    ui: double.ui,
+    deps: {
+      async checkScriptRuntimes() {
+        throw new Error('runtime check should not run');
+      },
+    },
+  });
+
+  assert.equal(exitCode, 0);
+  assert.equal(double.errors.length, 0);
+  await assert.rejects(fs.access(path.join(homeDir, '.zshrc')));
+  await assert.rejects(fs.access(path.join(homeDir, '.zprofile')));
+  assert.equal(
+    path.resolve(
+      path.dirname(path.join(homeDir, '.claude', 'CLAUDE.md')),
+      await fs.readlink(path.join(homeDir, '.claude', 'CLAUDE.md'))
+    ),
+    path.join(repoRoot, 'AGENTS.MD')
+  );
+  assert.ok(
+    double.infos.includes('Setup: agent instruction files\nTools: claude')
+  );
 });
 
 test('runCli set-config accepts explicit tool flags in non-interactive flows', async () => {

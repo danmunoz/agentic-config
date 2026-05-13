@@ -171,8 +171,9 @@ export function createUi({
         throw new Error('Interactive selection required. Re-run in a TTY or pass flags.');
       }
 
+      const example = options.length >= 3 ? '1,3' : options.length === 2 ? '1,2' : '1';
       write(stdout, renderHeader(message));
-      write(stdout, dim('Use comma-separated numbers. Example: 1,3'));
+      write(stdout, dim(`Use comma-separated numbers. Example: ${example}`));
       for (let index = 0; index < options.length; index += 1) {
         const option = options[index];
         write(stdout, `  ${cyan(String(index + 1).padStart(2, ' '))}  ${bold(option.label)}`);

@@ -14,7 +14,7 @@ It is the CLI that installs and maintains the configuration stored in this repo.
 ## Command Summary
 
 ```bash
-agh install [--tools <comma-separated-tools>]
+agh install [--setup <path,config>] [--tools <comma-separated-tools>]
 agh set-config [--tools <comma-separated-tools>]
 agh set-skills [--scope <global|local|both>] [--platforms <comma-separated-platforms>] [--yes]
 agh list [available|--available]
@@ -39,20 +39,28 @@ Supported local platforms:
 Use this for first-time machine setup.
 
 ```bash
-agh install
+agh install [--setup path,config] [--tools codex,claude,opencode]
 ```
 
 What it does:
 
-- updates or inserts one managed `PATH` block in `~/.zshrc`
-- updates or inserts the same managed `PATH` block in `~/.zprofile`
-- asks which tools to configure unless `--tools` is provided
-- replaces the selected tool instruction files with symlinks to this repo's `AGENTS.MD`
+- asks which setup components to apply unless `--setup` is provided
+- when `path` is selected:
+  - updates or inserts one managed `PATH` block in `~/.zshrc`
+  - updates or inserts the same managed `PATH` block in `~/.zprofile`
+  - checks script runtimes, including `uv` for Python-backed scripts
+  - if `uv` is missing in interactive mode, asks before running `brew install uv`
+  - checks that repo-local `.env` exists for scripts that need local configuration
+- when `config` is selected:
+  - asks which tools to configure unless `--tools` is provided
+  - replaces the selected tool instruction files with symlinks to this repo's `AGENTS.MD`
 
 What it does not do:
 
 - it does not install skills
 - it does not modify `skillfile.toml`
+- it does not install `uv` without explicit confirmation
+- it does not write secrets; copy `.env.example` to ignored `.env` and fill local values yourself
 
 When to use it:
 
@@ -60,11 +68,14 @@ When to use it:
 - after cloning this repo in a new location
 - after deleting the managed PATH block
 - when you want `agh` available globally
+- when you want to verify runtime support for scripts exposed through this repo's `scripts/` directory
 
 Examples:
 
 ```bash
 ./scripts/agh install
+agh install --setup path
+agh install --setup config --tools codex
 agh install --tools codex,claude
 agh install --tools opencode
 ```
@@ -80,6 +91,7 @@ Notes:
 - the command is idempotent
 - existing managed PATH blocks are updated in place
 - target instruction files are replaced with symlinks
+- `.env` is ignored by git; `.env.example` is the committed template for required local secrets
 
 ## `agh set-config`
 
@@ -292,7 +304,7 @@ Notes:
 ```bash
 cd ~/Repos/agentic-config
 npm install
-./scripts/agh install --tools codex,claude,opencode
+./scripts/agh install --setup path,config --tools codex,claude,opencode
 agh set-skills --scope global
 ```
 

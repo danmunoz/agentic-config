@@ -19,6 +19,11 @@ import {
 import { ensurePathBlock } from './path-config.mjs';
 import { createUi } from './prompt.mjs';
 import {
+  checkScriptConfiguration,
+  checkScriptRuntimes,
+  installUvWithHomebrew,
+} from './runtimes.mjs';
+import {
   compareSkillEntries,
   readSkillfile,
   sameSkillEntry,
@@ -35,7 +40,7 @@ import { formatList } from './utils.mjs';
 function usageText() {
   return [
     'Usage:',
-    '  agh install [--tools <comma-separated-tools>]',
+    '  agh install [--setup <path,config>] [--tools <comma-separated-tools>]',
     '  agh set-config [--tools <comma-separated-tools>]',
     '  agh set-skills [--scope <global|local|both>] [--platforms <comma-separated-platforms>] [--yes]',
     '  agh list [available|--available]',
@@ -44,6 +49,8 @@ function usageText() {
     '',
     'Examples:',
     '  agh install',
+    '  agh install --setup path',
+    '  agh install --setup config --tools codex',
     '  agh set-config --tools opencode',
     '  agh set-skills --scope both --platforms ios,web --yes',
     '  agh list',
@@ -66,6 +73,7 @@ function initializeOptions(command) {
     scope: null,
     selectedPlatforms: null,
     selectedTools: null,
+    selectedInstallComponents: null,
     url: null,
     skill: null,
     version: null,
@@ -74,6 +82,76 @@ function initializeOptions(command) {
     available: false,
     yes: false,
   };
+}
+
+function parseInstallFlags(rest, options) {
+  for (let index = 0; index < rest.length; index += 1) {
+    const arg = rest[index];
+    const value = rest[index + 1];
+    if (!value) {
+      throw new Error(`Missing value for ${arg}.`);
+    }
+
+    index += 1;
+    if (arg === '--tools') {
+      const selectedTools = parseCommaList(value);
+      const validTools = CONFIG_TARGETS.map((target) => target.id);
+      const invalidTools = selectedTools.filter((tool) => !validTools.includes(tool));
+      if (invalidTools.length > 0) {
+        throw new Error(
+          `Invalid --tools value(s): ${invalidTools.join(', ')}. Expected one of: ${validTools.join(', ')}.`
+        );
+      }
+      options.selectedTools = [...new Set(selectedTools)];
+      continue;
+    }
+
+    if (arg === '--setup') {
+      const selectedInstallComponents = parseCommaList(value);
+      if (selectedInstallComponents.length === 0) {
+        throw new Error('Invalid --setup value. Expected one or more of: path, config.');
+      }
+      const validComponents = ['path', 'config'];
+      const invalidComponents = selectedInstallComponents.filter(
+        (component) => !validComponents.includes(component)
+      );
+      if (invalidComponents.length > 0) {
+        throw new Error(
+          `Invalid --setup value(s): ${invalidComponents.join(', ')}. Expected one of: ${validComponents.join(', ')}.`
+        );
+      }
+      options.selectedInstallComponents = [...new Set(selectedInstallComponents)];
+      continue;
+    }
+
+    throw new Error(`Unknown flag "${arg}".`);
+  }
+}
+
+function parseSetConfigFlags(rest, options) {
+  for (let index = 0; index < rest.length; index += 1) {
+    const arg = rest[index];
+    const value = rest[index + 1];
+    if (!value) {
+      throw new Error(`Missing value for ${arg}.`);
+    }
+
+    index += 1;
+    if (arg === '--tools') {
+      const selectedTools = parseCommaList(value);
+      const validTools = CONFIG_TARGETS.map((target) => target.id);
+      const invalidTools = selectedTools.filter((tool) => !validTools.includes(tool));
+      if (invalidTools.length > 0) {
+        throw new Error(
+          `Invalid --tools value(s): ${invalidTools.join(', ')}. Expected one of: ${validTools.join(', ')}.`
+        );
+      }
+      options.selectedTools = [...new Set(selectedTools)];
+      continue;
+    }
+
+    throw new Error(`Unknown flag "${arg}".`);
+  }
 }
 
 function parseSetSkillsFlags(rest, options) {
@@ -212,8 +290,13 @@ export function parseArgs(argv) {
     return options;
   }
 
-  if (command === 'install' || command === 'set-config') {
-    parseSetSkillsFlags(rest, options);
+  if (command === 'install') {
+    parseInstallFlags(rest, options);
+    return options;
+  }
+
+  if (command === 'set-config') {
+    parseSetConfigFlags(rest, options);
     return options;
   }
 
@@ -335,6 +418,29 @@ async function resolveSelectedTools(options, ui) {
   );
 }
 
+async function resolveInstallComponents(options, ui) {
+  if (options.selectedInstallComponents && options.selectedInstallComponents.length > 0) {
+    return options.selectedInstallComponents;
+  }
+
+  if (!ui.isInteractive) {
+    return ['path', 'config'];
+  }
+
+  return ui.multiselect('Choose what agh install should set up:', [
+    {
+      value: 'path',
+      label: 'Scripts PATH',
+      hint: 'Add this repo scripts/ directory to shell PATH and check script runtimes',
+    },
+    {
+      value: 'config',
+      label: 'Agent instruction files',
+      hint: 'Link Codex, Claude, or OpenCode instructions to AGENTS.MD',
+    },
+  ]);
+}
+
 function formatNameList(names) {
   return names.join(', ');
 }
@@ -410,6 +516,76 @@ function renderRemovePlan(entry) {
 
 function renderConfigSummary(selectedTools) {
   return `Tools: ${selectedTools.join(', ')}`;
+}
+
+function renderInstallSummary(components, selectedTools) {
+  const labels = components.map((component) =>
+    component === 'path' ? 'scripts PATH' : 'agent instruction files'
+  );
+  const lines = [`Setup: ${labels.join(', ')}`];
+  if (components.includes('config')) {
+    lines.push(renderConfigSummary(selectedTools));
+  }
+  return lines.join('\n');
+}
+
+function reportRuntimeResults(runtimeResults, ui) {
+  if (runtimeResults.length === 0) {
+    return;
+  }
+
+  ui.info('Script runtimes:');
+  for (const runtime of runtimeResults) {
+    if (runtime.found) {
+      ui.info(`- ${runtime.name}: found at ${runtime.path}`);
+      continue;
+    }
+
+    ui.warn(`${runtime.name}: missing. ${runtime.purpose} ${runtime.installHint}`);
+  }
+}
+
+function reportScriptConfiguration(configResults, ui) {
+  if (configResults.length === 0) {
+    return;
+  }
+
+  ui.info('Script configuration:');
+  for (const config of configResults) {
+    if (config.found) {
+      ui.info(`- ${config.name}: found at ${config.path}`);
+      continue;
+    }
+
+    ui.warn(`${config.name}: missing. ${config.purpose} ${config.setupHint}`);
+  }
+}
+
+async function resolveScriptRuntimes(ui, deps) {
+  let runtimeResults = await deps.checkScriptRuntimes();
+  const missingUv = runtimeResults.find((runtime) => runtime.name === 'uv' && !runtime.found);
+
+  if (!missingUv || !ui.isInteractive) {
+    return runtimeResults;
+  }
+
+  const shouldInstall = await ui.confirm('uv is missing. Install uv using Homebrew now?');
+  if (!shouldInstall) {
+    return runtimeResults;
+  }
+
+  ui.startWork('Installing uv with Homebrew...');
+  const installResult = await deps.installUvWithHomebrew();
+  ui.stopWork();
+
+  if (!installResult.installed) {
+    ui.warn(`uv install failed. ${installResult.message}`);
+    return runtimeResults;
+  }
+
+  ui.success('Installed uv with Homebrew.');
+  runtimeResults = await deps.checkScriptRuntimes();
+  return runtimeResults;
 }
 
 function formatSkillDescriptor(entry) {
@@ -518,31 +694,48 @@ async function chooseEntry(entries, ui) {
   ).then((value) => entries[Number(value)]);
 }
 
-async function handleInstall({ repoRoot, homeDir, ui, options }) {
+async function handleInstall({ repoRoot, homeDir, ui, options, deps }) {
   const scriptsDir = getRepoScriptsDir(repoRoot);
   const rcFiles = [path.join(homeDir, '.zshrc'), path.join(homeDir, '.zprofile')];
   const pathResults = [];
-  const selectedTools = await resolveSelectedTools(options, ui);
+  const selectedInstallComponents = await resolveInstallComponents(options, ui);
+  const shouldConfigurePath = selectedInstallComponents.includes('path');
+  const shouldConfigureInstructions = selectedInstallComponents.includes('config');
+  const selectedTools = shouldConfigureInstructions ? await resolveSelectedTools(options, ui) : [];
 
-  for (const rcFile of rcFiles) {
-    pathResults.push(await ensurePathBlock(rcFile, scriptsDir));
+  if (shouldConfigurePath) {
+    for (const rcFile of rcFiles) {
+      pathResults.push(await ensurePathBlock(rcFile, scriptsDir));
+    }
   }
 
   ui.newline();
-  ui.info('Config summary:');
-  ui.info(renderConfigSummary(selectedTools));
+  ui.info('Install summary:');
+  ui.info(renderInstallSummary(selectedInstallComponents, selectedTools));
 
-  const configResults = await configureAgentInstructions({
-    repoRoot,
-    homeDir,
-    selectedTools,
-  });
+  const runtimeResults = shouldConfigurePath ? await resolveScriptRuntimes(ui, deps) : [];
+  const scriptConfigResults = shouldConfigurePath
+    ? await deps.checkScriptConfiguration({ repoRoot })
+    : [];
+  const instructionResults = shouldConfigureInstructions
+    ? await configureAgentInstructions({
+        repoRoot,
+        homeDir,
+        selectedTools,
+      })
+    : [];
 
   ui.success('agh install complete.');
-  ui.info('Updated PATH in:');
-  ui.info(formatList(pathResults.map((result) => result.path)));
-  ui.info('Configured instruction links:');
-  ui.info(formatList(configResults.map((result) => `${result.label}: ${result.linkPath}`)));
+  if (shouldConfigurePath) {
+    ui.info('Updated PATH in:');
+    ui.info(formatList(pathResults.map((result) => result.path)));
+    reportRuntimeResults(runtimeResults, ui);
+    reportScriptConfiguration(scriptConfigResults, ui);
+  }
+  if (shouldConfigureInstructions) {
+    ui.info('Configured instruction links:');
+    ui.info(formatList(instructionResults.map((result) => `${result.label}: ${result.linkPath}`)));
+  }
 }
 
 async function handleSetConfig({ repoRoot, homeDir, ui, options }) {
@@ -828,6 +1021,9 @@ export async function runCli(
     readLocalRepoLockfile,
     removeManagedSkillEntry,
     syncSkills,
+    checkScriptConfiguration,
+    checkScriptRuntimes,
+    installUvWithHomebrew,
     validateManagedSkillEntry,
     writeSkillfile,
     ...deps,
@@ -835,7 +1031,7 @@ export async function runCli(
 
   try {
     if (parsed.command === 'install') {
-      await handleInstall({ repoRoot, homeDir, ui, options: parsed });
+      await handleInstall({ repoRoot, homeDir, ui, options: parsed, deps: resolvedDeps });
       return 0;
     }
 
