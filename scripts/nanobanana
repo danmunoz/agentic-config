@@ -1,55 +1,6 @@
 #!/bin/sh
 
-usage() {
-  cat <<'USAGE'
-nanobanana - Image editing with Gemini's Nano Banana Pro API
-Usage:
-  nanobanana <image-path> "<prompt>" [output-path]
-  nanobanana --create "<prompt>" [output-path]
-
-Options:
-  -c, --create  Create a new image from text instead of editing an input image
-  -h, --help  Show this usage information and exit
-
-Examples:
-  nanobanana photo.jpg "remove the people in the background"
-  nanobanana selfie.png "add a sunset background" sunset_selfie.png
-  nanobanana food.jpg "make it look more appetizing"
-  nanobanana --create "a watercolor postcard of Lisbon at sunrise" lisbon.png
-
-Requires:
-  GEMINI_API_KEY environment variable
-  or GEMINI_API_KEY in the repo .env file
-  uv, installed or checked by agh install
-USAGE
-}
-
-case "${1:-}" in
-  -h|--help)
-    usage
-    exit 0
-    ;;
-esac
-
-if [ "$#" -lt 2 ]; then
-  usage
-  exit 1
-fi
-
 script_dir=$(CDPATH= cd "$(dirname "$0")" && pwd)
-repo_root=$(CDPATH= cd "$script_dir/.." && pwd)
-env_file="$repo_root/.env"
-
-if [ -z "${GEMINI_API_KEY:-}" ] && [ -f "$env_file" ]; then
-  gemini_api_key=$(sed -n 's/^[[:space:]]*GEMINI_API_KEY[[:space:]]*=[[:space:]]*//p' "$env_file" | sed -n '1p')
-  case "$gemini_api_key" in
-    \"*\") gemini_api_key=${gemini_api_key#\"}; gemini_api_key=${gemini_api_key%\"} ;;
-    \'*\') gemini_api_key=${gemini_api_key#\'}; gemini_api_key=${gemini_api_key%\'} ;;
-  esac
-  if [ -n "$gemini_api_key" ]; then
-    export GEMINI_API_KEY=$gemini_api_key
-  fi
-fi
 
 if ! command -v uv >/dev/null 2>&1; then
   echo "Error: uv is required to run nanobanana." >&2

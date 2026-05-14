@@ -92,7 +92,19 @@ cp .env.example .env
 $EDITOR .env
 ```
 
-`nanobanana` reads `GEMINI_API_KEY` from the shell environment first, then from this repo's ignored `.env` file.
+`nanobanana` reads `GEMINI_API_KEY` from the shell environment first, then from this repo's ignored `.env` file. It uses `gemini-2.5-flash-image` by default; pass `--v2` for `gemini-3.1-flash-image-preview` or `--pro` for `gemini-3-pro-image-preview`. It accepts `--aspect-ratio` and, with `--v2` or `--pro`, `--image-size`.
+
+Common calls:
+
+```bash
+nanobanana create "a watercolor postcard of Lisbon at sunrise" --output lisbon.png
+nanobanana edit photo.jpg "remove the people in the background" --output photo-clean.png
+nanobanana create --v2 --aspect-ratio 9:16 --image-size 1K "poster art"
+nanobanana --dry-run create "poster art"
+nanobanana --doctor
+```
+
+`--dry-run` validates inputs and prints the planned request without calling Gemini. Output paths are protected by default: explicit output paths fail if the file already exists, generated default names auto-increment, and `--force` opts into overwriting.
 
 Optional: apply global shared skills:
 
@@ -218,4 +230,10 @@ Run the `agh` test suite:
 
 ```bash
 node --test scripts/agh-lib/test/*.test.mjs
+```
+
+Run the `nanobanana` unit tests:
+
+```bash
+uv run --quiet --with google-genai --with Pillow python -m unittest scripts/test_nanobanana.py
 ```
