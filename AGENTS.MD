@@ -1,9 +1,9 @@
 # AGENTS.md
 
 Owner: Daniel Munoz (`me@danmunoz.com`)
-Version: 2
-Last updated: 2026-05-08
-Style: telegraph; noun-phrases ok; min tokens
+Version: 3
+Last updated: 2026-05-20
+
 
 ## Instruction Precedence
 - Order: system/tooling policy > repo `AGENTS.md` > direct user request > this file.
@@ -74,3 +74,36 @@ Style: telegraph; noun-phrases ok; min tokens
 - Theme: clear palette + CSS vars; bold accents
 - Motion: 1–2 meaningful moments; avoid random micro-anim
 - Avoid purple-on-white cliches, generic grids, predictable layouts
+
+# RTK - Rust Token Killer
+
+**Usage**: Token-optimized CLI proxy for shell commands.
+
+## Rule
+
+Always prefix shell commands with `rtk`.
+
+Examples:
+
+```bash
+rtk git status
+rtk cargo test
+rtk npm run build
+rtk pytest -q
+```
+
+## Meta Commands
+
+```bash
+rtk gain            # Token savings analytics
+rtk gain --history  # Recent command savings history
+rtk proxy <cmd>     # Run raw command without filtering
+```
+
+## Verification
+
+```bash
+rtk --version
+rtk gain
+which rtk
+```
